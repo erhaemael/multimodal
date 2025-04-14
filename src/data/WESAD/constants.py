@@ -9,3 +9,6 @@ ORIGINAL_SR = {
     "TEMP": 4,  # Hz
     "label": 700  # Hz
 }
+
+# Target sampling rate for all signals (after resampling)
+TARGET_SR = 64  # Hz

@@ -4,18 +4,18 @@ import os
 from tqdm import tqdm
 import pandas as pd
 
-from src.data.WESAD.constants import DATASET_PATH, PREPROCESSED_CSV
+from src.data.WESAD.constants import DATASET_PATH, PREPROCESSED_CSV, TARGET_SR
 from src.utils.resampling_pipeline import resample_signals
 from src.utils.bvp import extract_features as extract_bvp_features
 from src.utils.eda import extract_eda_features
 
 WINDOW_SIZE_SEC = 60
 OFFSET_SIZE_SEC = 10
-SAMPLE_RATE = 32
+SAMPLE_RATE = TARGET_SR
 WINDOW_SIZE = WINDOW_SIZE_SEC * SAMPLE_RATE
 OFFSET_SIZE = OFFSET_SIZE_SEC * SAMPLE_RATE
 
-def downsample_labels_majority(labels: np.ndarray, original_sr=700, target_sr=32) -> np.ndarray:
+def downsample_labels_majority(labels: np.ndarray, original_sr=700, target_sr=TARGET_SR) -> np.ndarray:
     factor = original_sr // target_sr
     num_samples = len(labels) // factor
     downsampled_labels = np.zeros(num_samples, dtype=int)
@@ -58,9 +58,9 @@ def main():
         signals, labels = load_patient_data(pickle_path)
         resampled_signals = resample_signals(signals)
 
-        acc_data = resampled_signals["ACC"]
-        if acc_data.ndim > 2:
-            acc_data = acc_data.reshape(acc_data.shape[0], -1)
+        # acc_data = resampled_signals["ACC"]
+        # if acc_data.ndim > 2:
+        #     acc_data = acc_data.reshape(acc_data.shape[0], -1)
 
         min_len = min(len(labels), *[len(resampled_signals[s]) for s in resampled_signals])
         labels = labels[:min_len]
@@ -77,7 +77,7 @@ def main():
             bvp_window = resampled_signals["BVP"][start:end]
             eda_window = resampled_signals["EDA"][start:end]
             temp_window = resampled_signals["TEMP"][start:end]
-            acc_window = acc_data[start:end]
+            # acc_window = acc_data[start:end]
             label_window = labels[start:end]
 
             # Ekstraksi fitur BVP & EDA
@@ -86,7 +86,7 @@ def main():
 
             # Mean TEMP dan ACC
             temp_mean = np.mean(temp_window)
-            acc_mean = np.mean(acc_window, axis=0)
+            # acc_mean = np.mean(acc_window, axis=0)
 
             # Majority label dalam window
             window_label = np.argmax(np.bincount(label_window))
@@ -95,9 +95,9 @@ def main():
                 **bvp_features,
                 **eda_features,
                 "TEMP_mean": temp_mean,
-                "ACC_x_mean": acc_mean[0],
-                "ACC_y_mean": acc_mean[1],
-                "ACC_z_mean": acc_mean[2]
+                # "ACC_x_mean": acc_mean[0],
+                # "ACC_y_mean": acc_mean[1],
+                # "ACC_z_mean": acc_mean[2]
             })
 
             all_signals.append(w_signals)

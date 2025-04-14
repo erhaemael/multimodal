@@ -7,7 +7,7 @@ import wandb
 
 from WESAD.constants import PREPROCESSED_CSV as WESAD_CSV
 
-BVP_FEATURES = ['HR_BVP', 'HRV_BVP', 'SCR_count', 'SCR_avg_amplitude','SCL_mean', 'TEMP_mean', 'ACC_x_mean', 'ACC_y_mean', 'ACC_z_mean']
+BVP_FEATURES = ['HR_BVP', 'HRV_BVP', 'SCR_count', 'SCR_avg_amplitude','SCL_mean', 'TEMP_mean']
 
 class Features(Dataset):
     def __init__(self, dataset: str, flag="train", k_split=5, k=0, scaler=None, step=1):
@@ -142,4 +142,7 @@ class FeaturesUniTS(Features):
             y = np.float32(self.labels[index:index + self.win_size])
         else:
             y = np.zeros(self.win_size)
+        
+        if index == 0:
+            print(f"[CHECK] Dataloader sample shape: {x.shape}")  # Harus (win_size, 9)
         return x, y

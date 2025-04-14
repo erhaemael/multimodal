@@ -479,12 +479,14 @@ class PatchEmbedding(nn.Module):
         self.stride = stride
         assert self.patch_len == self.stride, "non-overlap"
         self.value_embedding = nn.Linear(patch_len, d_model, bias=False)
+        # self.value_embedding = nn.Linear(patch_len * 9, d_model, bias=False)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         n_vars = x.shape[1]
         x = x.unfold(dimension=-1, size=self.patch_len, step=self.stride)
         x = torch.reshape(x, (x.shape[0] * x.shape[1], x.shape[2], x.shape[3]))
+        # x = torch.reshape(x, (x.shape[0], x.shape[1], -1, x.shape[-1]))
         x = self.value_embedding(x)
         return self.dropout(x), n_vars
 
@@ -662,6 +664,8 @@ class Model(nn.Module):
                 args.d_model, args.patch_len, args.stride, args.stride, prefix_token_length=1, head_dropout=args.dropout)
 
     def tokenize(self, x, mask=None):
+        print(f"[CHECK] Raw input to tokenize: {x.shape}")  # Expect (B, L, 9)
+
         # Normalization from Non-stationary Transformer
         means = x.mean(1, keepdim=True).detach()
         x = x - means
@@ -819,11 +823,13 @@ class Model(nn.Module):
         return x
 
     def anomaly_detection(self, x, x_mark, task_id):
+        print(f"[CHECK] Input shape to model: {x.shape}")  # (B, L, 9)
         dataset_name = self.configs_list[task_id][1]['dataset']
         prefix_prompt = self.prompt_tokens[dataset_name]
 
         seq_len = x.shape[1]
         x, means, stdev, n_vars, padding = self.tokenize(x)
+        print(f"[CHECK] After tokenize - n_vars: {n_vars}, shape: {x.shape}")
 
         x = self.prepare_prompt(x, n_vars, prefix_prompt,
                                 None, None, task_name='anomaly_detection')
