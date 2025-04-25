@@ -38,7 +38,7 @@ class Features(Dataset):
         if dataset == "WESAD":
             path = os.path.join(base_path, WESAD_CSV)
         else:
-            raise ValueError(f"Dataset must be one of ['WESAD', 'DREAMER', 'HCI']")
+            raise ValueError(f"Dataset must be one of 'WESAD'")
         data = pd.read_csv(path)
 
         # Skip "Patient" and "timestamp" columns
