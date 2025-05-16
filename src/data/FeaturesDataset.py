@@ -143,6 +143,4 @@ class FeaturesUniTS(Features):
         else:
             y = np.zeros(self.win_size)
         
-        if index == 0:
-            print(f"[CHECK] Dataloader sample shape: {x.shape}")  # Harus (win_size, 9)
         return x, y

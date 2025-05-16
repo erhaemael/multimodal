@@ -664,7 +664,7 @@ class Model(nn.Module):
                 args.d_model, args.patch_len, args.stride, args.stride, prefix_token_length=1, head_dropout=args.dropout)
 
     def tokenize(self, x, mask=None):
-        print(f"[CHECK] Raw input to tokenize: {x.shape}")  # Expect (B, L, 9)
+        # print(f"[CHECK] Raw input to tokenize: {x.shape}")  # Expect (B, L, 9)
 
         # Normalization from Non-stationary Transformer
         means = x.mean(1, keepdim=True).detach()
@@ -823,13 +823,13 @@ class Model(nn.Module):
         return x
 
     def anomaly_detection(self, x, x_mark, task_id):
-        print(f"[CHECK] Input shape to model: {x.shape}")  # (B, L, 9)
+        # print(f"[CHECK] Input shape to model: {x.shape}")  # (B, L, 9)
         dataset_name = self.configs_list[task_id][1]['dataset']
         prefix_prompt = self.prompt_tokens[dataset_name]
 
         seq_len = x.shape[1]
         x, means, stdev, n_vars, padding = self.tokenize(x)
-        print(f"[CHECK] After tokenize - n_vars: {n_vars}, shape: {x.shape}")
+        # print(f"[CHECK] After tokenize - n_vars: {n_vars}, shape: {x.shape}")
 
         x = self.prepare_prompt(x, n_vars, prefix_prompt,
                                 None, None, task_name='anomaly_detection')

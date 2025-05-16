@@ -75,17 +75,17 @@ def main():
             w_signals = {"Timestamp": start // SAMPLE_RATE}
 
             bvp_window = resampled_signals["BVP"][start:end]
-            eda_window = resampled_signals["EDA"][start:end]
-            temp_window = resampled_signals["TEMP"][start:end]
+            # eda_window = resampled_signals["EDA"][start:end]
+            # temp_window = resampled_signals["TEMP"][start:end]
             # acc_window = acc_data[start:end]
             label_window = labels[start:end]
 
             # Ekstraksi fitur BVP & EDA
             bvp_features = extract_bvp_features(bvp_window, sample_rate=SAMPLE_RATE)
-            eda_features = extract_eda_features(eda_window, sample_rate=SAMPLE_RATE)
+            # eda_features = extract_eda_features(eda_window, sample_rate=SAMPLE_RATE)
 
             # Mean TEMP dan ACC
-            temp_mean = np.mean(temp_window)
+            # temp_mean = np.mean(temp_window)
             # acc_mean = np.mean(acc_window, axis=0)
 
             # Majority label dalam window
@@ -93,8 +93,8 @@ def main():
 
             w_signals.update({
                 **bvp_features,
-                **eda_features,
-                "TEMP_mean": temp_mean,
+                # **eda_features,
+                # "TEMP_mean": temp_mean,
                 # "ACC_x_mean": acc_mean[0],
                 # "ACC_y_mean": acc_mean[1],
                 # "ACC_z_mean": acc_mean[2]
