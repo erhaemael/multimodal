@@ -585,8 +585,6 @@ class Model(nn.Module):
             dataset_name = configs_list[i][1]['dataset']
             task_data_name = configs_list[i][0]
             enc_in = configs_list[i][1]['enc_in']
-            if args.confounding: # Add context size for confounding
-                enc_in += configs_list[i][1]['context_size']
             if dataset_name not in self.prompt_tokens:
                 self.prompt_tokens[dataset_name] = torch.zeros(
                     1, enc_in, args.prompt_num, args.d_model)

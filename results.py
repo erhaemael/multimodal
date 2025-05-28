@@ -22,37 +22,44 @@ RUNS = {
 api = wandb.Api()
 
 def process_project(project_name: str, model: str = "units", csvs: list = [], auc: bool = False, ignore_version: bool = False):
+    # Check if project belongs to allowed datasets and version
     if not any([dataset in project_name for dataset in DATASETS]):
         return
     if VERSION not in project_name and not ignore_version:
         return
 
+    # Identify the model type used in the project name
     for k in RUNS.keys():
         if k.lower() in project_name:
             model = k
             if model == "contextual":
                 break
 
+    # Retrieve all runs from the project
     runs = api.runs(f"{WANDB_USER}/{project_name}")
     metrics = METRICs[model]
     aucs = AUCs[model] if auc else []
 
     print(f"Processing {project_name} with model {model}, metrics: {metrics}, aucs: {aucs}")
 
+    # Skip project if number of runs doesn't match the expected count
     if len(runs) != RUNS[model]:
         print(f"Skipping {project_name} because of missing runs ({len(runs)}/{RUNS[model]})")
         return
 
+    # Group results by learning rate and signal source (hardcoded as "BVP")
     groups: dict[tuple[float, str], list[pd.DataFrame]] = {}
 
     for run in tqdm(runs, desc=f"Processing {project_name}"):
         tags = run.tags
 
+        # Extract metric history for each run
         datas = [run.scan_history(keys=[metric]) for metric in metrics]
         datas += [run.scan_history(keys=aucs)]
         datas = [pd.DataFrame(data) for data in datas]
         data = pd.concat(datas, axis=1)
 
+        # Extract learning rate tag
         lr_tag = [tag for tag in tags if tag.startswith("lr")]
         if not lr_tag:
             continue
@@ -63,18 +70,20 @@ def process_project(project_name: str, model: str = "units", csvs: list = [], au
             print(f"Skipping run with invalid lr tag: {lr_str}")
             continue
 
-        source = "BVP"
+        source = "BVP"  # Currently hardcoded source
 
         if (lr_value, source) not in groups:
             groups[(lr_value, source)] = []
         groups[(lr_value, source)].append(data)
 
-    avg_f1s: dict[tuple[float, str], float] = {}
-    std_f1s: dict[tuple[float, str], float] = {}
-    l_kf1s: dict[tuple[float, str], list[float]] = {}
-    avg_aucrocs: dict[tuple[float, str], float] = {}
-    avg_aucprs: dict[tuple[float, str], float] = {}
+    # Dictionaries to store summary statistics
+    avg_f1s = {}
+    std_f1s = {}
+    l_kf1s = {}
+    avg_aucrocs = {}
+    avg_aucprs = {}
 
+    # Compute best F1-scores and AUCs for each group
     for group, data_runs in groups.items():
         best_f1s = []
         best_aucrocs = []
@@ -97,22 +106,24 @@ def process_project(project_name: str, model: str = "units", csvs: list = [], au
                 best_aucrocs.append(best_aucroc)
                 best_aucprs.append(best_aucpr)
 
+        # Store mean and std of best F1s, and best AUCs if available
         avg_f1s[group] = np.mean(best_f1s)
         std_f1s[group] = np.std(best_f1s)
         l_kf1s[group] = best_f1s
         avg_aucrocs[group] = np.mean(best_aucrocs)
         avg_aucprs[group] = np.mean(best_aucprs)
 
+    # Print average and per-fold F1 scores
     print("\n=== F1 Scores per Learning Rate ===")
     for (lr, src), f1 in avg_f1s.items():
         print(f"lr={lr:.0e}, mean_f1={f1:.4f}, std={std_f1s[(lr, src)]:.4f}")
-        # Tampilkan f1 per fold juga
         f1_folds = l_kf1s[(lr, "BVP")]
         for i, f1 in enumerate(f1_folds):
             print(f"  Fold {i}: {f1:.4f}")
 
-    best_metrics: dict[str, list[float]] = {}
-    best_l_kf1s: dict[str, list[float]] = {}
+    # Determine the best performing configuration
+    best_metrics = {}
+    best_l_kf1s = {}
     best_f1 = 0
     best_lr = 0
     best_f1_std = 0
@@ -131,9 +142,11 @@ def process_project(project_name: str, model: str = "units", csvs: list = [], au
 
     best_metrics["BVP"] = [best_f1, best_aucroc, best_aucpr, best_f1_std]
 
+    # Print the best metric summary
     print(f"\nProject: {project_name} - Best Scores: {best_metrics} with lr={best_lr:.0e}")
     print(f"Project: {project_name} - Best l_kf1s: {best_l_kf1s}")
 
+    # Save results to CSV
     if len(csvs) != len(DATASETS):
         print("ERROR: csvs should have the same length as DATASETS")
     else:
@@ -146,16 +159,18 @@ def process_project(project_name: str, model: str = "units", csvs: list = [], au
     return best_metrics, best_l_kf1s
 
 def main():
+    # Define CSV paths and open files
     csv_paths = [f"{dataset}_results.csv" for dataset in DATASETS]
     csv_files = []
 
-    # Buka file CSV dan tulis header jika belum ada
+    # Open CSV files and write header
     for path in csv_paths:
         write_header = not os.path.exists(path)
-        f = open(path, "w")  # selalu overwrite
+        f = open(path, "w") 
         f.write("project_name,best_f1,best_aucroc,best_aucpr,std_f1,num_runs,metric,lr_value\n")
         csv_files.append(f)
 
+    # Process all projects under the W&B user
     projects = api.projects(f"{WANDB_USER}")
     for project in tqdm(projects, desc="Processing projects"):
         try:
@@ -164,6 +179,7 @@ def main():
         except Exception as e:
             print(f"Error in processing project {project.name}: {e}")
 
+    # Close CSV files
     for f in csv_files:
         f.close()
 

@@ -15,12 +15,10 @@ class Features(Dataset):
         Load the Features dataset for anomaly detection.
 
         Args:
-            dataset (str): Dataset to use. Must be one of ['WESAD', 'DREAMER', 'HCI', etc.]
+            dataset (str): Dataset to use.
             flag (str): Flag to select the split. Must be one of ['train', 'test']
             k_split (int): Number of splits to perform for k-fold cross-validation (default: 10)
             k (int): Index of the split to use for k-fold cross-validation (default: 0)
-            source (str): Source of the data. Must be one of ['ECG', 'BVP']
-            confounding (bool): Whether to include confounding features (default: False)
             step (int): Step for downsampling the data (default: 1 - no downsampling)
         """
         self.flag = flag
@@ -114,13 +112,12 @@ class FeaturesUniTS(Features):
         Load the Features dataset for anomaly detection.
 
         Args:
-            dataset (str): Dataset to use. Must be one of ['WESAD', 'DREAMER', 'HCI', etc.]
+            dataset (str): Dataset to use.
             win_size (int): Size of the sliding window.
             step (int): Step of the sliding window (default: 1)
             flag (str): Flag to select the split. Must be one of ['train', 'test']
             k_split (int): Number of splits to perform for k-fold cross-validation (default: 10)
             k (int): Index of the split to use for k-fold cross-validation (default: 0)
-            source (str): Source of the data. Must be one of ['ECG', 'BVP']
         """
         scaler = StandardScaler()
         super().__init__(
