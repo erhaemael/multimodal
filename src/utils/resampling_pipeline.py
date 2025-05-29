@@ -4,7 +4,7 @@ from scipy.signal import gaussian, convolve
 from scipy.interpolate import interp1d
 from src.data.WESAD.constants import TARGET_SR 
 
-def gaussian_smoothing(signal, window_size=40, sigma=400):
+def gaussian_smoothing(signal, window_size=40, sigma=26):
     """
     Apply Gaussian smoothing to the input signal.
     
@@ -58,7 +58,7 @@ def resample_signals(signals: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
 
     eda_signal = signals['EDA'].flatten()
     eda_upsampled = upsample_interp(eda_signal, original_sr=4, target_sr=TARGET_SR)
-    eda_smoothed = gaussian_smoothing(eda_upsampled, window_size=40, sigma=400)
+    eda_smoothed = gaussian_smoothing(eda_upsampled, window_size=40, sigma=26)
 
     temp_signal = signals['TEMP'].flatten()
     temp_upsampled = upsample_interp(temp_signal, original_sr=4, target_sr=TARGET_SR)
