@@ -46,6 +46,7 @@ def resample_signals(signals: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
     - BVP signal is already at target frequency (64 Hz) and used as is.
     - EDA signal is upsampled from 4 Hz to target rate, then smoothed using Gaussian kernel.
     - TEMP signal is upsampled from 4 Hz to target rate, then clipped to a realistic temperature range.
+    - ACC signal is upsampled from 32 Hz to target rate.
     - All signals are truncated to the shortest length among them to maintain alignment.
     
     Parameters:
@@ -64,12 +65,20 @@ def resample_signals(signals: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
     temp_upsampled = upsample_interp(temp_signal, original_sr=4, target_sr=TARGET_SR)
     temp_cleaned = np.clip(temp_upsampled, 20, 50)  # Ensure temperature values are within a realistic range (20°C to 50°C)
 
+    # ACC: Upsample dari 32 Hz -> 64 Hz
+    acc_data = signals['ACC']  # shape (N, 3)
+    acc_upsampled = np.stack([
+        upsample_interp(acc_data[:, i], original_sr=32, target_sr=TARGET_SR)
+        for i in range(acc_data.shape[1])
+    ], axis=-1)
+
     # Determine the minimum length to synchronize all signals
-    min_len = min(len(bvp_signal), len(eda_smoothed), len(temp_cleaned))
+    min_len = min(len(bvp_signal), len(eda_smoothed), len(temp_cleaned), acc_upsampled.shape[0])
 
     # Return the resampled and synchronized signals
     return {
         "BVP": bvp_signal[:min_len],
         "EDA": eda_smoothed[:min_len],
         "TEMP": temp_cleaned[:min_len],
+         "ACC": acc_upsampled[:min_len]
     }

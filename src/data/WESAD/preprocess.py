@@ -47,7 +47,7 @@ def load_patient_data(pickle_path: str) -> tuple[dict[str, np.ndarray], np.ndarr
 
     Returns:
         tuple:
-            - dict of signals (TEMP, BVP, EDA)
+            - dict of signals (ACC, TEMP, BVP, EDA)
             - downsampled binary labels (1 = stress, 0 = non-stress)
     """
     with open(pickle_path, 'rb') as file:
@@ -62,6 +62,7 @@ def load_patient_data(pickle_path: str) -> tuple[dict[str, np.ndarray], np.ndarr
 
     wrist_signals = data["signal"]["wrist"]
     signals = {
+        "ACC": wrist_signals["ACC"],
         "TEMP": wrist_signals["TEMP"],
         "BVP": wrist_signals["BVP"],
         "EDA": wrist_signals["EDA"]
@@ -95,9 +96,13 @@ def main():
         # Load and resample signal data and labels
         signals, labels = load_patient_data(pickle_path)
         resampled_signals = resample_signals(signals)
+        
+        acc_data = resampled_signals["ACC"]
+        if acc_data.ndim > 2:
+            acc_data = acc_data.reshape(acc_data.shape[0], -1)
 
         # Determine the minimum length across all signals and labels to avoid mismatch
-        min_len = min(len(labels), *[len(resampled_signals[s]) for s in resampled_signals])
+        min_len = min(len(labels), *[len(resampled_signals[s]) for s in resampled_signals], len(acc_data))
         labels = labels[:min_len]
 
         all_signals = []
@@ -112,6 +117,7 @@ def main():
             bvp_window = resampled_signals["BVP"][start:end]
             eda_window = resampled_signals["EDA"][start:end]
             temp_window = resampled_signals["TEMP"][start:end]
+            acc_window = acc_data[start]
             label_window = labels[start:end]
 
             # Extract features from BVP and EDA windows
@@ -126,9 +132,12 @@ def main():
 
             # Merge all features into a dictionary
             w_signals.update({
+                "ACC_x": acc_window[0],
+                "ACC_y": acc_window[1],
+                "ACC_z": acc_window[2],
+                "TEMP_mean": temp_mean,
                 **bvp_features,
                 **eda_features,
-                "TEMP_mean": temp_mean,
             })
 
             all_signals.append(w_signals)

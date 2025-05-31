@@ -8,9 +8,10 @@ import wandb
 from WESAD.constants import PREPROCESSED_CSV as WESAD_CSV
 
 BVP_FEATURES = ['HR_BVP', 'HRV_BVP', 'SCR_count', 'SCR_avg_amplitude','SCL_mean', 'TEMP_mean']
+CONF_FEATURES = ['ACC_x', 'ACC_y', 'ACC_z']
 
 class Features(Dataset):
-    def __init__(self, dataset: str, flag="train", k_split=5, k=0, scaler=None, step=1):
+    def __init__(self, dataset: str, flag="train", k_split=5, k=0, scaler=None, confounding=False, step=1):
         """
         Load the Features dataset for anomaly detection.
 
@@ -19,6 +20,7 @@ class Features(Dataset):
             flag (str): Flag to select the split. Must be one of ['train', 'test']
             k_split (int): Number of splits to perform for k-fold cross-validation (default: 10)
             k (int): Index of the split to use for k-fold cross-validation (default: 0)
+            confounding (bool): Whether to include confounding features (default: False)
             step (int): Step for downsampling the data (default: 1 - no downsampling)
         """
         self.flag = flag
@@ -38,6 +40,13 @@ class Features(Dataset):
         else:
             raise ValueError(f"Dataset must be one of 'WESAD'")
         data = pd.read_csv(path)
+
+        # Remove confounding columns if specified
+        if not confounding:
+            # Remove confounding features if present
+            for feature in CONF_FEATURES:
+                if feature in data.columns:
+                    data = data.drop(columns=[feature])
 
         # Skip "Patient" and "timestamp" columns
         data = data.drop(columns=['Patient', 'Timestamp'])
@@ -107,7 +116,7 @@ class Features(Dataset):
 
 
 class FeaturesUniTS(Features):
-    def __init__(self, dataset: str, win_size: int, step=1, flag="train", k_split=5, k=0):
+    def __init__(self, dataset: str, win_size: int, step=1, flag="train", k_split=5, k=0, confounding=False):
         """
         Load the Features dataset for anomaly detection.
 
@@ -126,6 +135,7 @@ class FeaturesUniTS(Features):
             k_split=k_split,
             k=k,
             scaler=scaler,
+            confounding=confounding,
             step=step
         )
         self.win_size = win_size
