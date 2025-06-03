@@ -135,9 +135,9 @@ def main():
                 "ACC_x": acc_window[0],
                 "ACC_y": acc_window[1],
                 "ACC_z": acc_window[2],
-                "TEMP_mean": temp_mean,
                 **bvp_features,
                 **eda_features,
+                "TEMP_mean": temp_mean,
             })
 
             all_signals.append(w_signals)
