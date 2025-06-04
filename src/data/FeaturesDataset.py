@@ -50,7 +50,7 @@ class Features(Dataset):
 
         # Skip "Patient" and "timestamp" columns
         data = data.drop(columns=['Patient', 'Timestamp'])
-        # print("Remaining columns:", data.columns)
+        print("Remaining columns:", list(data.columns))
         data = np.nan_to_num(data.values)
         size = len(data)
 

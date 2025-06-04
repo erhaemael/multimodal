@@ -178,26 +178,27 @@ def get_model_predictions(dataset_name: str, majority_threshold: float = 0):
 # Function to plot anomaly reconstruction errors and feature contributions
 def plot_anomaly(dataset_name: str, all_samples: bool = False, majority_threshold: float = 0):
 
-    # Get the first anomaly
+    # Determine the anomaly window to visualize
     if all_samples:
-        n_samples = 2000
+        n_samples = 2000   # Plot a larger sample window if plotting the full data
         anomaly_idx = 0
     else:
-        n_samples = 500
+        n_samples = 500    # Plot a smaller window starting at a specific anomaly
         anomaly_idx = 600
 
     print(f"Plotting anomaly multimodal from sample {anomaly_idx} to {anomaly_idx + n_samples}")
 
-    # Create the directory to save the plots
+    # Prepare output directory to save the plots
     prefix = "all_" if all_samples else "part_"
     path = os.path.join(base_path, f"plots/{k}")
-    path = os.path.join(path)
     if majority_threshold > 0:
         path = os.path.join(path, f"majority_{majority_threshold}")
     os.makedirs(path, exist_ok=True)
 
-    # Get the model prediciton
+    # Get model prediction and reconstruction output
     gt, pred, data, outputs = get_model_predictions(dataset_name, majority_threshold)
+
+    # Slice the data to the selected window
     min_idx = max(anomaly_idx, 0)
     max_idx = min(min_idx + n_samples, len(gt))
     gt = gt[min_idx:max_idx]
@@ -205,39 +206,39 @@ def plot_anomaly(dataset_name: str, all_samples: bool = False, majority_threshol
     data = data[min_idx:max_idx]
     outputs = outputs[min_idx:max_idx]
 
-    # Konfigurasi
-    feature_names = ['HR_BVP', 'HRV_BVP', 'SCR_count', 'SCR_avg_amplitude', 'SCL_mean', 'TEMP_mean']
-    feature_colors = ["#5dade2", "#d3d920", "#f89939", "#2ecc71", "#f06e57", "#a569bd"]  # Satu warna per fitur
+    # Feature labels and color palette for plotting
+    feature_names = ['HR', 'HRV', 'SCR_count', 'SCR_avg_amplitude', 'SCL_mean', 'TEMP_mean']
+    feature_colors = ["#3499cd", "#f89939", "#e2e527", "#2ecc71", "#f06e57", "#a569bd"]  # One color per feature
 
-    # Hitung error rekonstruksi per fitur
+    # Compute reconstruction error per feature
     error = np.abs(data - outputs)
     tot_error = np.sum(error, axis=1)
-    tot_error_norm = tot_error / np.max(tot_error)  # untuk alpha transparansi
-    contrib_error = error / tot_error[:, np.newaxis]  # kontribusi relatif
+    tot_error_norm = tot_error / np.max(tot_error)  # Used for transparency (alpha)
+    contrib_error = error / tot_error[:, np.newaxis]  # Relative contribution of each feature to total error
 
     x_ticks = np.arange(min_idx, max_idx)
 
-    # Plot sinyal masing-masing fitur
+    # Plot time series for each feature with anomaly highlights
     for i in range(data.shape[1]):
         plt.figure(figsize=(10, 3))
         plt.plot(x_ticks, data[:, i], color='#3499cd', label=feature_names[i])
         plt.ylabel(feature_names[i])
         plt.xlabel("Time (s)")
 
-        # Plot the anomaly prediction as red area
+        # Overlay predicted and ground truth anomalies as colored areas
         min_h = data[:, i].min()
         max_h = data[:, i].max()
         h_margin = 0.1 * (max_h - min_h)
         plt.ylim(min_h - h_margin, max_h + h_margin)
-        plt.fill_between(x_ticks, min_h, max_h+h_margin, where=pred == 1, color='red', alpha=0.3, linewidth=0.0, label="Predicted Anomaly")
-        plt.fill_between(x_ticks, min_h-h_margin, min_h, where=gt == 1, color='green', alpha=0.3, linewidth=0.0, label="Ground Truth Anomaly")
+        plt.fill_between(x_ticks, min_h, max_h + h_margin, where=pred == 1, color='red', alpha=0.3, linewidth=0.0, label="Predicted Anomaly")
+        plt.fill_between(x_ticks, min_h - h_margin, min_h, where=gt == 1, color='green', alpha=0.3, linewidth=0.0, label="Ground Truth Anomaly")
         plt.legend(loc="upper right")
 
         plt.tight_layout()
         plt.savefig(path + f"/{prefix}anomaly_{feature_names[i]}.svg")
         plt.close()
 
-    # Plot kontribusi error (stacked bar per fitur) dengan alpha = tot_error_norm
+    # Plot stacked bar of feature contribution (with alpha transparency scaled by total error)
     plt.figure(figsize=(10, 3))
     for i in range(len(x_ticks)):
         alpha = min(1, tot_error_norm[i])
@@ -251,16 +252,23 @@ def plot_anomaly(dataset_name: str, all_samples: bool = False, majority_threshol
     plt.savefig(path + f"/{prefix}anomaly_error_contrib.svg")
     plt.close()
 
-    # Plot error rekonstruksi per fitur
-    for i in range(data.shape[1]):
-        plt.figure(figsize=(10, 3))
-        plt.bar(x_ticks, error[:, i], color=feature_colors[i], alpha=1)
-        plt.ylabel(f"Rec Error {feature_names[i]}")
-        plt.xlabel("Time (s)")
-        plt.tight_layout()
-        plt.savefig(path + f"/{prefix}anomaly_{feature_names[i]}_error.svg")
-        plt.close()
+    # Plot the same stacked contribution bar chart with legend
+    plt.figure(figsize=(10, 3))
+    bar_handles = [plt.Rectangle((0, 0), 1, 1, color=color) for color in feature_colors]  # Dummy handles for legend
 
+    for i in range(len(x_ticks)):
+        alpha = min(1, tot_error_norm[i])
+        bottom = 0
+        for j in range(len(feature_names)):
+            plt.bar(x_ticks[i], contrib_error[i, j], bottom=bottom, color=feature_colors[j], alpha=alpha)
+            bottom += contrib_error[i, j]
+
+    plt.ylabel("Contribution Probability")
+    plt.xlabel("Time (s)")
+    plt.legend(bar_handles, feature_names, loc="upper right", title="Features")
+    plt.tight_layout()
+    plt.savefig(path + f"/{prefix}contribution_probability.svg")
+    plt.close()
 
 def plot_density(dataset_name: str):
     # Get the dataset
@@ -284,7 +292,7 @@ def plot_density(dataset_name: str):
     anomaly_samples = np.array(lanomaly_samples)
     non_anomaly_samples = np.array(lnon_anomaly_samples)
 
-    feature_names = ['HR_BVP', 'HRV_BVP', 'SCR_count', 'SCR_avg_amplitude', 'SCL_mean', 'TEMP_mean']
+    feature_names = ['HR', 'HRV', 'SCR_count', 'SCR_avg_amplitude', 'SCL_mean', 'TEMP_mean']
     plt.rcParams.update({'font.size': 22})
     for i, name in enumerate(feature_names):
         plt.figure(figsize=(10, 6.5))
