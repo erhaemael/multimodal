@@ -9,4 +9,4 @@ task_dataset:
         embed: timeF
         enc_in: 6 # features
         context_size: 3
-        feature_weights: [0.25, 0.25, 0.15, 0.15, 0.15, 0.05] 
+        # feature_weights: [0.25, 0.25, 0.15, 0.15, 0.15, 0.05] 

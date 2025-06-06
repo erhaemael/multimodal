@@ -456,9 +456,12 @@ class Exp_All_Task(object):
             task_name = self.task_data_config_list[task_id][1]['task_name']
             data_task_name = self.task_data_config_list[task_id][0]
             if task_name == 'anomaly_detection':
-                config = self.task_data_config_list[task_id][1]
                 f_score, precision, recall, accuracy = self.test_anomaly_detection(
-                    setting, test_data, test_loader, data_task_name, task_id, config)
+                    setting, test_data, test_loader, data_task_name, task_id)
+                #weighted
+                # config = self.task_data_config_list[task_id][1]
+                # f_score, precision, recall, accuracy = self.test_anomaly_detection(
+                #     setting, test_data, test_loader, data_task_name, task_id, config)
                 total_dict[data_task_name] = {
                     'f_score': f_score, 'precision': precision, 'recall': recall
                 }
@@ -511,11 +514,12 @@ class Exp_All_Task(object):
             reconstructed.append(outputs.detach().cpu().numpy())
             
             # criterion
-            # score = torch.mean(anomaly_criterion(batch_x, outputs), dim=-1)
+            score = torch.mean(anomaly_criterion(batch_x, outputs), dim=-1)
 
-            recon_error = anomaly_criterion(batch_x, outputs)  # shape: (batch, seq_len, features)
-            weighted_error = recon_error * feature_weights
-            score = torch.mean(weighted_error, dim=-1)
+            # weighted
+            # recon_error = anomaly_criterion(batch_x, outputs)  # shape: (batch, seq_len, features)
+            # weighted_error = recon_error * feature_weights
+            # score = torch.mean(weighted_error, dim=-1)
 
             score = score.detach().cpu()
             attens_energy.append(score)
