@@ -400,7 +400,7 @@ class Exp_All_Task(object):
 
     def train_anomaly_detection(self, model, this_batch, criterion, config, task_id):
 
-        feature_weights = torch.tensor(config["feature_weights"], dtype=torch.float32, device=self.device_id)
+        # feature_weights = torch.tensor(config["feature_weights"], dtype=torch.float32, device=self.device_id)
 
         task_name = config['task_name']
         features = config['features']
@@ -414,11 +414,11 @@ class Exp_All_Task(object):
                             None, task_id=task_id, task_name=task_name)
             f_dim = -1 if features == 'MS' else 0
             outputs = outputs[:, :, f_dim:]
-            # loss = criterion(outputs, batch_x)
-
-            recon_error = criterion(outputs, batch_x)  # shape: (batch, seq_len, features)
-            weighted_error = recon_error * feature_weights  # broadcast dim
-            loss = weighted_error.mean()
+            loss = criterion(outputs, batch_x)
+            #weighted
+            # recon_error = criterion(outputs, batch_x)  # shape: (batch, seq_len, features)
+            # weighted_error = recon_error * feature_weights  # broadcast dim
+            # loss = weighted_error.mean()
 
         return loss
 
@@ -468,7 +468,7 @@ class Exp_All_Task(object):
 
     def test_anomaly_detection(self, setting, test_data, test_loader_set, data_task_name, task_id, config, ar=None):
 
-        feature_weights = torch.tensor(config["feature_weights"], dtype=torch.float32, device=self.device_id)
+        # feature_weights = torch.tensor(config["feature_weights"], dtype=torch.float32, device=self.device_id)
 
         train_loader, test_loader = test_loader_set
         attens_energy = []
@@ -483,11 +483,12 @@ class Exp_All_Task(object):
                 outputs = self.model(
                     batch_x, None, None, None, task_id=task_id, task_name='anomaly_detection')
                 # criterion
-                # score = torch.mean(anomaly_criterion(batch_x, outputs), dim=-1)
+                score = torch.mean(anomaly_criterion(batch_x, outputs), dim=-1)
 
-                recon_error = anomaly_criterion(batch_x, outputs)  # shape: (batch, seq_len, features)
-                weighted_error = recon_error * feature_weights
-                score = torch.mean(weighted_error, dim=-1)
+                # weighted
+                # recon_error = anomaly_criterion(batch_x, outputs)  # shape: (batch, seq_len, features)
+                # weighted_error = recon_error * feature_weights
+                # score = torch.mean(weighted_error, dim=-1)
 
                 score = score.detach().cpu()
                 attens_energy.append(score)

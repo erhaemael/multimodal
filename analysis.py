@@ -83,22 +83,22 @@ def get_model_predictions(dataset_name: str, majority_threshold: float = 0):
     args = Struct(**args)
 
     #mean
-    # task_data_config = {
-    #     'WESAD': {
-    #         'dataset': 'WESAD', 'data': 'WESAD', 'embed': 'timeF', 'label_len': 0,
-    #         'pred_len': 0, 'features': 'M', 'enc_in': 6, 'context_size': 3,
-    #         'task_name': 'anomaly_detection', 'max_batch': 64
-    #     }
-    # }
-
-    #weighted
     task_data_config = {
         'WESAD': {
             'dataset': 'WESAD', 'data': 'WESAD', 'embed': 'timeF', 'label_len': 0,
-            'pred_len': 0, 'features': 'M', 'enc_in': 6, 'context_size': 3, 'feature_weights': [0.25, 0.25, 0.15, 0.15, 0.15, 0.05], 
+            'pred_len': 0, 'features': 'M', 'enc_in': 6, 'context_size': 3,
             'task_name': 'anomaly_detection', 'max_batch': 64
         }
     }
+
+    #weighted
+    # task_data_config = {
+    #     'WESAD': {
+    #         'dataset': 'WESAD', 'data': 'WESAD', 'embed': 'timeF', 'label_len': 0,
+    #         'pred_len': 0, 'features': 'M', 'enc_in': 6, 'context_size': 3, 'feature_weights': [0.25, 0.25, 0.15, 0.15, 0.15, 0.05], 
+    #         'task_name': 'anomaly_detection', 'max_batch': 64
+    #     }
+    # }
 
     # Load the model
     random.seed(FIXED_SEED)
@@ -119,14 +119,18 @@ def get_model_predictions(dataset_name: str, majority_threshold: float = 0):
     exp.train(setting, train_ddp=False)
 
     #weighted
-    config = {
-        "feature_weights": [0.25, 0.25, 0.15, 0.15, 0.15, 0.05]
-    }
+    # config = {
+    #     "feature_weights": [0.25, 0.25, 0.15, 0.15, 0.15, 0.05]
+    # }
 
     # Test the model
     f_score, precision, recall, accuracy, gt, pred, reconstructed = exp.test_anomaly_detection(
-        {}, {}, (train_loader, test_loader), "", 0, config=config, ar=3
+        {}, {}, (train_loader, test_loader), "", 0, ar=3
     )
+    #weighted
+    # f_score, precision, recall, accuracy, gt, pred, reconstructed = exp.test_anomaly_detection(
+    #     {}, {}, (train_loader, test_loader), "", 0, config=config, ar=3
+    # )
     print(f"Precision: {precision}, Recall: {recall}, F1: {f_score}, Accuracy: {accuracy}")
  
     # Get test dataset as a numpy array
