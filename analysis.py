@@ -211,7 +211,7 @@ def plot_anomaly(dataset_name: str, all_samples: bool = False, majority_threshol
     outputs = outputs[min_idx:max_idx]
 
     # Feature labels and color palette for plotting
-    feature_names = ['HR', 'HRV', 'SCR_count', 'SCR_avg_amplitude', 'SCL_mean', 'TEMP_mean']
+    feature_names = ['HR_BVP', 'HRV_BVP', 'SCR_count', 'SCR_avg_amplitude', 'SCL_mean', 'TEMP_mean']
     feature_colors = ["#3499cd", "#f89939", "#e2e527", "#2ecc71", "#f06e57", "#a569bd"]  # One color per feature
 
     # Compute reconstruction error per feature
@@ -226,6 +226,13 @@ def plot_anomaly(dataset_name: str, all_samples: bool = False, majority_threshol
     for i in range(data.shape[1]):
         plt.figure(figsize=(10, 3))
         plt.plot(x_ticks, data[:, i], color='#3499cd', label=feature_names[i])
+
+        # Hitung dan plot moving average 
+        window_size = 10
+        kernel = np.ones(window_size) / window_size
+        ma = np.convolve(data[:, i], kernel, mode='same')
+        plt.plot(x_ticks, ma, color="#f89939", linewidth=2, label="Moving Average")
+
         plt.ylabel(feature_names[i])
         plt.xlabel("Time (s)")
 
@@ -296,7 +303,7 @@ def plot_density(dataset_name: str):
     anomaly_samples = np.array(lanomaly_samples)
     non_anomaly_samples = np.array(lnon_anomaly_samples)
 
-    feature_names = ['HR', 'HRV', 'SCR_count', 'SCR_avg_amplitude', 'SCL_mean', 'TEMP_mean']
+    feature_names = ['HR_BVP', 'HRV_BVP', 'SCR_count', 'SCR_avg_amplitude', 'SCL_mean', 'TEMP_mean']
     plt.rcParams.update({'font.size': 22})
     for i, name in enumerate(feature_names):
         plt.figure(figsize=(10, 6.5))

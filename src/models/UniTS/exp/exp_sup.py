@@ -469,7 +469,7 @@ class Exp_All_Task(object):
 
         avg_anomaly_f_score = np.average(avg_anomaly_f_score)
 
-    def test_anomaly_detection(self, setting, test_data, test_loader_set, data_task_name, task_id, config, ar=None):
+    def test_anomaly_detection(self, setting, test_data, test_loader_set, data_task_name, task_id, ar=None):
 
         # feature_weights = torch.tensor(config["feature_weights"], dtype=torch.float32, device=self.device_id)
 
@@ -532,6 +532,8 @@ class Exp_All_Task(object):
         test_energy = np.concatenate(attens_energy, axis=0).reshape(-1)
         combined_energy = np.concatenate([train_energy, test_energy], axis=0)
 
+        validation_loss = np.mean(test_energy)
+
         test_labels = np.concatenate(test_labels, axis=0).reshape(-1)
         test_labels = np.array(test_labels)
         gt = test_labels.astype(int)
@@ -541,6 +543,7 @@ class Exp_All_Task(object):
         auc_pr = average_precision_score(gt, test_energy)
 
         wandb.log({
+            "validation_loss": validation_loss, 
             "AUC_ROC": auc_roc,
             "AUC_PR": auc_pr
         })

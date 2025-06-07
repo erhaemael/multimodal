@@ -5,7 +5,7 @@ task_dataset:
         embed: timeF
         label_len: 0
         pred_len: 0
-        features: M # Multivariate serie predict multivariate serie
+        features: M # Multivariate serie predict multivariate series
         embed: timeF
         enc_in: 6 # features
         context_size: 3
