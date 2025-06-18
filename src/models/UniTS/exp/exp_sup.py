@@ -469,9 +469,11 @@ class Exp_All_Task(object):
 
         avg_anomaly_f_score = np.average(avg_anomaly_f_score)
 
-    def test_anomaly_detection(self, setting, test_data, test_loader_set, data_task_name, task_id, ar=None):
+    def test_anomaly_detection(self, setting, test_data, test_loader_set, data_task_name, task_id, config=None, ar=None):
 
         # feature_weights = torch.tensor(config["feature_weights"], dtype=torch.float32, device=self.device_id)
+        if config is None:
+          config = {}
 
         train_loader, test_loader = test_loader_set
         attens_energy = []
@@ -548,57 +550,48 @@ class Exp_All_Task(object):
             "AUC_PR": auc_pr
         })
 
-        # Test for different anomaly thresholds
-        for anomaly_ratio in range(1, int(self.args.anomaly_ratio)):
-            threshold = np.percentile(combined_energy, 100 - anomaly_ratio)
+        low_th = np.percentile(train_energy, 3)
+        high_th = np.percentile(train_energy, 97)
 
-            # (3) evaluation on the test set
-            pred = (test_energy > threshold).astype(int)
+        # Prediksi anomali: nilai di luar rentang normal
+        pred = ((test_energy < low_th) | (test_energy > high_th)).astype(int)
 
-            # print("pred:   ", pred.shape)
-            # print("gt:     ", gt.shape)
+        # Evaluasi prediksi
+        gt, pred = adjustment(gt, pred)
 
-            # (4) detection adjustment
-            gt, pred = adjustment(gt, pred)
+        pred = np.array(pred)
+        gt = np.array(gt)
 
-            pred = np.array(pred)
-            gt = np.array(gt)
+        tp = np.sum((gt == 1) & (pred == 1))
+        tn = np.sum((gt == 0) & (pred == 0))
+        fp = np.sum((gt == 0) & (pred == 1))
+        fn = np.sum((gt == 1) & (pred == 0))
 
-            tp = np.sum((gt == 1) & (pred == 1))
-            tn = np.sum((gt == 0) & (pred == 0))
-            fp = np.sum((gt == 0) & (pred == 1))
-            fn = np.sum((gt == 1) & (pred == 0))
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+        accuracy = (tp + tn) / (tp + tn + fp + fn)
+        MIoU = 0.5 * (tp / (tp + fp + fn) + tn / (tn + fn + fp))
 
-            # Metrics
-            precision = tp / (tp + fp)
-            recall = tp / (tp + fn)
-            f_score = 2 * precision * recall / (precision + recall)
-            accuracy = (tp + tn) / (tp + tn + fp + fn)
-            MIoU = 0.5 * (tp / (tp + fp + fn) + tn / (tn + fn + fp))
+        # Logging hasil dengan label "_pctl" (agar terbaca oleh results.py yang pakai "f1_score_pctl")
+        wandb.log({
+            "f1_score_pctl": f_score,
+            "precision_pctl": precision,
+            "recall_pctl": recall,
+            "accuracy_pctl": accuracy,
+            "MIoU_pctl": MIoU,
+            "low_th": low_th,
+            "high_th": high_th,
+            "TP_pctl": tp,
+            "TN_pctl": tn,
+            "FP_pctl": fp,
+            "FN_pctl": fn
+        })
 
-            # print("Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f} ".format(
-            #     accuracy, precision,
-            #     recall, f_score))
-
-            wandb.log({
-                f"f1_score_ar{anomaly_ratio}": f_score,
-                f"precision_ar{anomaly_ratio}": precision,
-                f"recall_ar{anomaly_ratio}": recall,
-                f"accuracy_ar{anomaly_ratio}": accuracy,
-                f"MIoU_ar{anomaly_ratio}": MIoU,
-
-                f"threshold_ar{anomaly_ratio}": threshold,
-
-                f"TP_ar{anomaly_ratio}": tp,
-                f"TN_ar{anomaly_ratio}": tn,
-                f"FP_ar{anomaly_ratio}": fp,
-                f"FN_ar{anomaly_ratio}": fn
-            })
-
-            if ar == anomaly_ratio:
-                print("WARNING: inference mode is on, only return the results for anomaly ratio", ar)
-                reconstructed = np.concatenate(reconstructed, axis=0)
-                return f_score, precision, recall, accuracy, gt, pred, reconstructed
+        if ar is not None or config.get("use_percentile_threshold", False):  # tambahkan kondisi baru
+            print("Inference mode is on. Returning detailed results.")
+            reconstructed = np.concatenate(reconstructed, axis=0)
+            return f_score, precision, recall, accuracy, gt, pred, reconstructed
 
         return f_score, precision, recall, accuracy
 

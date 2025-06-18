@@ -70,7 +70,7 @@ def get_model_predictions(dataset_name: str, majority_threshold: float = 0):
         "step": 1,
         "subsample_pct": None,
         "num_workers": 0,
-        "learning_rate": 5e-5,
+        "learning_rate": 5e-4,
         "layer_decay": None,
         "memory_check": False,
         "prompt_tune_epoch": 0,
@@ -124,8 +124,12 @@ def get_model_predictions(dataset_name: str, majority_threshold: float = 0):
     # }
 
     # Test the model
+    config = {
+    "use_percentile_threshold": True
+    }
+
     f_score, precision, recall, accuracy, gt, pred, reconstructed = exp.test_anomaly_detection(
-        {}, {}, (train_loader, test_loader), "", 0, ar=3
+        {}, {}, (train_loader, test_loader), "", 0, config=config
     )
     #weighted
     # f_score, precision, recall, accuracy, gt, pred, reconstructed = exp.test_anomaly_detection(
@@ -231,7 +235,7 @@ def plot_anomaly(dataset_name: str, all_samples: bool = False, majority_threshol
         window_size = 10
         kernel = np.ones(window_size) / window_size
         ma = np.convolve(data[:, i], kernel, mode='same')
-        plt.plot(x_ticks, ma, color="#f89939", linewidth=2, label="Moving Average")
+        plt.plot(x_ticks, ma, color="#f89939", linewidth=2, alpha=0.5, label="Moving Average")
 
         plt.ylabel(feature_names[i])
         plt.xlabel("Time (s)")
@@ -248,20 +252,6 @@ def plot_anomaly(dataset_name: str, all_samples: bool = False, majority_threshol
         plt.tight_layout()
         plt.savefig(path + f"/{prefix}anomaly_{feature_names[i]}.svg")
         plt.close()
-
-    # Plot stacked bar of feature contribution (with alpha transparency scaled by total error)
-    plt.figure(figsize=(10, 3))
-    for i in range(len(x_ticks)):
-        alpha = min(1, tot_error_norm[i])
-        bottom = 0
-        for j in range(len(feature_names)):
-            plt.bar(x_ticks[i], contrib_error[i, j], bottom=bottom, color=feature_colors[j], alpha=alpha)
-            bottom += contrib_error[i, j]
-    plt.ylabel("Contribution Probability")
-    plt.xlabel("Time (s)")
-    plt.tight_layout()
-    plt.savefig(path + f"/{prefix}anomaly_error_contrib.svg")
-    plt.close()
 
     # Plot the same stacked contribution bar chart with legend
     plt.figure(figsize=(10, 3))
